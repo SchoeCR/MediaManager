@@ -16,5 +16,25 @@ namespace MediaManager
         {
             InitializeComponent();
         }
+
+        private void LoadFolderEvent(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ShowAboutEvent(object sender, EventArgs e)
+        {
+
+        }
+
+        private void MediaPlayerStateChangeEvent(object sender, AxWMPLib._WMPOCXEvents_PlayStateChangeEvent e)
+        {
+
+        }
+
+        private void PlayListChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
