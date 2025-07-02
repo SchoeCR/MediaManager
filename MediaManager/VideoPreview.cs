@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.Drawing;
 using System.IO;
@@ -426,6 +427,11 @@ namespace MediaManager
                 string fileName = Path.GetFileName(fileCurrentPath);
                 string fileDestinationPath = Path.Combine(destinationFolder, fileName);
 
+                if (string.IsNullOrWhiteSpace(destinationFolder))
+                {
+                    MessageBox.Show("A destination folder has not been selected.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
                 if (!File.Exists(fileCurrentPath))
                 {
                     MessageBox.Show("Source file does not exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -448,6 +454,14 @@ namespace MediaManager
             catch (Exception ex)
             {
                 MessageBox.Show("An error has occurred:\n" + ex.Message, "Failure", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnOpenFolder_Click(object sender, EventArgs e)
+        {
+            if (txtFolderDestination != null)
+            {
+                Process.Start(txtFolderDestination.Text);
             }
         }
     }

@@ -61,6 +61,7 @@
             this.label5 = new System.Windows.Forms.Label();
             this.txtFolderDestination = new System.Windows.Forms.TextBox();
             this.VideoPlayer = new AxWMPLib.AxWindowsMediaPlayer();
+            this.btnOpenFolder = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numSeason)).BeginInit();
@@ -109,6 +110,7 @@
             this.PlayList.Location = new System.Drawing.Point(478, 27);
             this.PlayList.Name = "PlayList";
             this.PlayList.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.PlayList.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
             this.PlayList.Size = new System.Drawing.Size(423, 251);
             this.PlayList.TabIndex = 2;
             this.PlayList.SelectedIndexChanged += new System.EventHandler(this.PlayListChanged);
@@ -206,10 +208,12 @@
             // optMovie
             // 
             this.optMovie.AutoSize = true;
+            this.optMovie.Checked = true;
             this.optMovie.Location = new System.Drawing.Point(6, 13);
             this.optMovie.Name = "optMovie";
             this.optMovie.Size = new System.Drawing.Size(54, 17);
             this.optMovie.TabIndex = 9;
+            this.optMovie.TabStop = true;
             this.optMovie.Text = "Movie";
             this.optMovie.UseVisualStyleBackColor = true;
             // 
@@ -319,6 +323,7 @@
             // 
             // grpFolder
             // 
+            this.grpFolder.Controls.Add(this.btnOpenFolder);
             this.grpFolder.Controls.Add(this.btnCreateFolder);
             this.grpFolder.Controls.Add(this.label5);
             this.grpFolder.Controls.Add(this.txtFolderDestination);
@@ -366,6 +371,17 @@
             this.VideoPlayer.Size = new System.Drawing.Size(446, 279);
             this.VideoPlayer.TabIndex = 1;
             this.VideoPlayer.PlayStateChange += new AxWMPLib._WMPOCXEvents_PlayStateChangeEventHandler(this.MediaPlayerStateChangeEvent);
+            // 
+            // btnOpenFolder
+            // 
+            this.btnOpenFolder.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnOpenFolder.Location = new System.Drawing.Point(228, 45);
+            this.btnOpenFolder.Name = "btnOpenFolder";
+            this.btnOpenFolder.Size = new System.Drawing.Size(82, 23);
+            this.btnOpenFolder.TabIndex = 10;
+            this.btnOpenFolder.Text = "Open Folder";
+            this.btnOpenFolder.UseVisualStyleBackColor = true;
+            this.btnOpenFolder.Click += new System.EventHandler(this.btnOpenFolder_Click);
             // 
             // VideoPreview
             // 
@@ -435,6 +451,7 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Button btnCreateFolder;
         private System.Windows.Forms.Button btnMoveFile;
+        private System.Windows.Forms.Button btnOpenFolder;
     }
 }
 
