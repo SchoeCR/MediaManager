@@ -1,15 +1,19 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using RestSharp;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics.Eventing.Reader;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
-using System.IO;
-using System.Diagnostics.Eventing.Reader;
 
 namespace MediaManager
 {
@@ -151,17 +155,299 @@ namespace MediaManager
             name.Text = "Currently Playing: " + file;
         }
 
-        private void ShowNameEvent(object sender, EventArgs e)
+        private async void btnSearch_Click(object sender, EventArgs e)
         {
-
-            if (PlayList.SelectedItem != null)
+            var query = txtSearchString.Text;
+            if (string.IsNullOrEmpty(query))
             {
-                string selected_file = PlayList.SelectedItem.ToString();
-                MessageBox.Show("Selected file:" + selected_file, "File name", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Console.Beep(500,750);
+                MessageBox.Show("Please enter a search value.");
+                return;
             }
             else
             {
-                MessageBox.Show("No file selected.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Console.WriteLine(query);
+            }
+            var URL = "https://api.themoviedb.org/3/search/multi?include_adult=false&language=en-US&page=1";
+            var qry_Str = "&query=" + Uri.EscapeDataString(query);
+            var API_Str = URL + qry_Str;
+            var options = new RestClientOptions(API_Str);
+            var client = new RestClient(options);
+            var request = new RestRequest("");
+            request.AddHeader("accept", "application/json");
+            request.AddHeader("Authorization", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzZGU0Zjc2NzBhMGNhYzE4NjA5NTBiOTQ5YWY3ZTA1ZCIsIm5iZiI6MTc0MDI2MzYzMi45MTkwMDAxLCJzdWIiOiI2N2JhNTBkMGEyMzkyOWFjMjhiZWMwNTkiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.Id-gzv0aD8dGSAAyNj88XTC2UJaHdnuPhfeWcdPa4Ro");
+            var response = await client.GetAsync(request);
+
+            Console.WriteLine("{0}", response.Content);
+
+            if (response.IsSuccessful && response.Content != null)
+            {
+                var jsonResponse = JsonConvert.DeserializeObject<TMDBResponse>(response.Content);
+
+                lstSearchResults.Items.Clear(); // Clear any existing items in lstSearchResults
+
+                foreach (var item in jsonResponse.results)
+                {
+                    string title = item.Title ?? item.Name; // movie or TV show
+                    string date = item.Release_date ?? item.First_air_date;
+                    string year = "";
+                    if (!string.IsNullOrEmpty(date) && date.Length >= 4)
+                    {
+                        year = date.Substring(0, 4);
+                    }
+
+                    lstSearchResults.Items.Add($"{title} ({year})");
+                }
+                if (jsonResponse != null && jsonResponse.results != null)
+                {
+                    var resultForm = new SearchResults(jsonResponse.results);
+                    resultForm.Show(); // or ShowDialog() if you want it modal
+                }
+            }
+            else
+            {
+                MessageBox.Show("API call failed.");
+                Console.WriteLine(response.ErrorMessage);
+            }
+        }
+
+        private void SelectedValueChanged(object sender, EventArgs e)
+        {
+            if (PlayList.SelectedItem != null)
+            {
+                string selected_result = PlayList.SelectedItem.ToString();
+                txtFileCurrName.Text = selected_result;
+            }
+        }
+      
+        private void RenameEvent(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void btnCreateFolder_Click(object sender, EventArgs e)
+        {
+            using (FolderBrowserDialog folderDlg = new FolderBrowserDialog())
+            {
+                folderDlg.ShowNewFolderButton = false;
+                folderDlg.Description = "Select root folder";
+                DialogResult dialogResult = folderDlg.ShowDialog();
+                if (dialogResult == DialogResult.OK)
+                {
+                    string folderName = txtFileNewName.Text;
+                    string folderRoot = folderDlg.SelectedPath.ToString();
+
+                    if (folderName.Length > 0)
+                    {
+                        if (folderName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                        {
+                            MessageBox.Show("Folder name contains invalid characters.");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Please enter a desired folder name.");
+                        return;
+                    }
+
+                            string folderPath = Path.Combine(folderRoot, folderName);
+                    if (!Directory.Exists(folderPath))
+                    {
+                        Directory.CreateDirectory(folderPath);
+                    }
+
+                    if (Directory.Exists(folderPath))
+                    {
+                        txtFolderDestination.Text = folderPath;
+                    }
+                }
+            }
+        }
+
+        private void label3_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void optShow_CheckedChanged(object sender, EventArgs e)
+        {
+            if (optShow.Checked)
+            {
+                numSeason.Enabled = true;
+                numEpisode.Enabled = true;
+            }
+            else
+            {
+                numSeason.Enabled = false;
+                numEpisode.Enabled = false;
+            }
+        }
+
+        private void lstSearchResults_MouseDblClick(object sender, MouseEventArgs e)
+        {
+            string curr_Selection = lstSearchResults.SelectedItem.ToString();
+            txtFileNewName.Text = curr_Selection;
+        }
+
+        private void txtSearchString_MouseClick(object sender, MouseEventArgs e)
+        {
+            if(txtSearchString.Text == "Movie/TV Show name") 
+            {
+                txtSearchString.Clear();
+            }
+        }
+
+        private void btnSelectFolder_Click(object sender, EventArgs e)
+        {
+            using (FolderBrowserDialog folderDlg = new FolderBrowserDialog())
+            {
+                DialogResult dialogResult = folderDlg.ShowDialog();
+                // Show the FolderBrowserDialog.
+                if (dialogResult == DialogResult.OK)
+                {
+                    txtFolderDestination.Text = folderDlg.SelectedPath;
+                }
+            }
+        }
+
+        private void btnName_Click(object sender, EventArgs e)
+        {
+            if (optMovie.Checked) 
+            { Rename_Movie(); }
+            else 
+            { Rename_Show(); }
+        }
+
+        private void Rename_Movie()
+        {
+            if (lstSearchResults.SelectedItem != null)
+            {
+                string selected_result = lstSearchResults.SelectedItem.ToString();
+
+                if (txtFileCurrName != null && txtFileCurrName.Text == PlayList.SelectedItem.ToString())
+                {
+                    DialogResult result = MessageBox.Show("Do you wish to rename current file?", "Rename", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (result == DialogResult.Yes)
+                    {
+                        string originalFile = PlayList.SelectedItem.ToString();
+                        string directoryPath = Path.GetDirectoryName(PlayList.SelectedItem.ToString());
+                        string extension = Path.GetExtension(PlayList.SelectedItem.ToString()).ToLower();
+                        string filenameWithExt = selected_result + extension;
+                        if (!Directory.Exists(directoryPath))
+                        {
+                            MessageBox.Show("File directory does not exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+
+                        string newName = Path.Combine(directoryPath, filenameWithExt);
+                        Console.WriteLine(newName);
+
+                        if (Directory.Exists(newName))
+                        {
+                            MessageBox.Show("A file with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+
+                        File.Move(originalFile, newName);
+                        requeryPlaylist(directoryPath);
+                        MessageBox.Show("File successfully renamed!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+        }
+
+        private void Rename_Show()
+        {
+            if (lstSearchResults.SelectedItem != null)
+            {
+                string selected_result = lstSearchResults.SelectedItem.ToString();
+
+                if (txtFileCurrName != null && txtFileCurrName.Text == PlayList.SelectedItem.ToString())
+                {
+                    DialogResult result = MessageBox.Show("Do you wish to rename current file?", "Rename", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (result == DialogResult.Yes)
+                    {
+                        string originalFile = PlayList.SelectedItem.ToString();
+                        string directoryPath = Path.GetDirectoryName(PlayList.SelectedItem.ToString());
+                        string trim_selected_result = Regex.Replace(selected_result, @"\s*\(.*\)", "");
+                        string formattedSeason = "S" + ((int)numSeason.Value).ToString("D2");
+                        string formattedEpisode = "E" + ((int)numEpisode.Value).ToString("D2");
+                        string extension = Path.GetExtension(PlayList.SelectedItem.ToString()).ToLower();
+                        string filenameWithExt = trim_selected_result + " " + formattedSeason + formattedEpisode + extension;
+                        
+                        if (!Directory.Exists(directoryPath))
+                        {
+                            MessageBox.Show("File directory does not exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+
+                        string newName = Path.Combine(directoryPath, filenameWithExt);
+                        Console.WriteLine(newName);
+
+                        if (Directory.Exists(newName))
+                        {
+                            MessageBox.Show("A file with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                        
+                        File.Move(originalFile, newName);
+                        requeryPlaylist(directoryPath);
+                        MessageBox.Show("File successfully renamed!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+        }
+
+        private void requeryPlaylist(string directoryPath)
+        {
+            string[] extensions = new[] { "*.mp4", "*.wmv", "*.mkv", "*.webm", "*.avi" };
+            List<string> mediaFiles = new List<string>();
+
+            foreach (string ext in extensions)
+            {
+                mediaFiles.AddRange(Directory.GetFiles(directoryPath, ext));
+            }
+
+            PlayList.Items.Clear();
+            foreach (string file in mediaFiles)
+            {
+                PlayList.Items.Add(file);
+            }
+        }
+
+        private void btnMoveFile_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string fileCurrentPath = txtFileCurrName.Text;
+                string directoryPath = Path.GetDirectoryName(fileCurrentPath);
+                string destinationFolder = txtFolderDestination.Text;
+                string fileName = Path.GetFileName(fileCurrentPath);
+                string fileDestinationPath = Path.Combine(destinationFolder, fileName);
+
+                if (!File.Exists(fileCurrentPath))
+                {
+                    MessageBox.Show("Source file does not exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                if (File.Exists(fileDestinationPath))
+                {
+                    MessageBox.Show("A file with the same name already exists in the destination.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                DialogResult dialogResult = MessageBox.Show("Do you wish to move the file into the destination folder?", "Move", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (dialogResult == DialogResult.Yes)
+                {
+                    File.Move(fileCurrentPath, fileDestinationPath);
+                    requeryPlaylist(directoryPath);
+                    MessageBox.Show("File moved!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("An error has occurred:\n" + ex.Message, "Failure", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
